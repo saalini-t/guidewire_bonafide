@@ -8,21 +8,11 @@ import datetime as dt
 from sqlalchemy.orm import Session
 
 from app.enums import EvidenceType, ExpiryTrigger, HoldStatus, PreservationEventType
-from app.models import Claim, Document, EvidenceItem, PreservationHold, PreservationLog
+from app.evidence_taxonomy import PERSONAL_AUTO_EVIDENCE_TRIGGER_MAP as EVIDENCE_TRIGGER_MAP
+from app.models import Claim, Document, EvidenceItem, ImageAnalysis, PreservationHold, PreservationLog
 from app.repositories import add_evidence_item, add_log, confirm_hold, create_claim, create_hold
 
 SEEDED_BY = "seed_script"
-
-# Default expiry-trigger mapping for the six-item evidence taxonomy
-# (docs/DATA_MODEL.md documents this as the configurable default).
-EVIDENCE_TRIGGER_MAP: dict[EvidenceType, ExpiryTrigger] = {
-    EvidenceType.VEHICLE_PHOTOGRAPHS: ExpiryTrigger.REPAIR_AUTHORIZATION,
-    EvidenceType.POLICE_REPORT: ExpiryTrigger.CLAIM_CLOSURE,
-    EvidenceType.REPAIR_APPRAISAL: ExpiryTrigger.REPAIR_AUTHORIZATION,
-    EvidenceType.VEHICLE_INSPECTION: ExpiryTrigger.REPAIR_AUTHORIZATION,
-    EvidenceType.RECORDED_STATEMENT: ExpiryTrigger.REPAIR_AUTHORIZATION,
-    EvidenceType.REPAIR_ESTIMATE: ExpiryTrigger.REPAIR_AUTHORIZATION,
-}
 
 
 def _seed_evidence(session: Session, claim_id: str, satisfaction: dict[EvidenceType, bool]) -> None:
@@ -46,9 +36,10 @@ def reset(session: Session) -> None:
     """
     session.query(PreservationLog).delete()
     session.query(PreservationHold).delete()
-    # EvidenceItem.satisfying_document_id references Document.id, so
-    # evidence rows must go before document rows.
+    # EvidenceItem.satisfying_document_id and ImageAnalysis.document_id both
+    # reference Document.id, so both must go before document rows.
     session.query(EvidenceItem).delete()
+    session.query(ImageAnalysis).delete()
     session.query(Document).delete()
     session.query(Claim).delete()
 

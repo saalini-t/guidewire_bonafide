@@ -20,7 +20,13 @@ vi.mock("../api/client.js", () => {
       getEvidence: vi.fn(),
       getAnalysis: vi.fn(),
       getHolds: vi.fn(),
+      getDocuments: vi.fn(),
       getPreservationLog: vi.fn(),
+      uploadFile: vi.fn(),
+      uploadDocument: vi.fn(),
+      classifyDocument: vi.fn(),
+      analyzeImage: vi.fn(),
+      documentFileUrl: (claimId, documentId) => `http://test/${claimId}/${documentId}/file`,
     },
   };
 });
@@ -61,6 +67,7 @@ describe("ClaimDetailPage", () => {
       recommendation: "Preserve the evidence.",
     });
     api.getHolds.mockResolvedValue([]);
+    api.getDocuments.mockResolvedValue([]);
     api.getPreservationLog.mockResolvedValue([]);
 
     renderAt("CLM-10042");
@@ -76,6 +83,7 @@ describe("ClaimDetailPage", () => {
     api.getEvidence.mockResolvedValue([]);
     api.getAnalysis.mockResolvedValue({});
     api.getHolds.mockResolvedValue([]);
+    api.getDocuments.mockResolvedValue([]);
     api.getPreservationLog.mockResolvedValue([]);
 
     renderAt("CLM-NOPE");
@@ -97,6 +105,7 @@ describe("ClaimDetailPage", () => {
       recommendation: "No preservation action required at this time.",
     });
     api.getHolds.mockResolvedValue([]);
+    api.getDocuments.mockResolvedValue([]);
     api.getPreservationLog.mockResolvedValue([]);
 
     renderAt("CLM-10042");
@@ -115,5 +124,51 @@ describe("ClaimDetailPage", () => {
     await user.click(screen.getByRole("button", { name: /retry/i }));
 
     expect(await screen.findByText("Jordan Reyes")).toBeInTheDocument();
+  });
+
+  it("shows documents fetched from the backend, surviving a page refresh", async () => {
+    // Regression coverage for the known limitation this phase fixes:
+    // documents used to live only in local component state and vanished
+    // on reload. They now come from GET .../documents on every refresh().
+    api.getClaim.mockResolvedValue({
+      claim_id: "CLM-10042",
+      claim_type: "PersonalAuto",
+      status: "OPEN",
+      repair_status: "PENDING",
+      upcoming_business_event: "RepairAuthorization",
+      claimant: "Jordan Reyes",
+    });
+    api.getEvidence.mockResolvedValue([]);
+    api.getAnalysis.mockResolvedValue({
+      risk_level: "LOW",
+      upcoming_event: null,
+      at_risk_evidence: [],
+      missing_evidence: [],
+      explanation: "",
+      recommendation: "",
+    });
+    api.getHolds.mockResolvedValue([]);
+    api.getDocuments.mockResolvedValue([
+      {
+        id: 1,
+        filename: "damage.jpg",
+        mime_type: "image/jpeg",
+        file_size: 20480,
+        uploaded_at: "2026-09-27T12:00:00Z",
+        classification: null,
+        confidence: null,
+        litigation_signal: null,
+        litigation_confidence: null,
+        classification_status: "PENDING",
+        ai_provider: null,
+        image_analysis_status: "PENDING",
+        image_analysis: null,
+      },
+    ]);
+    api.getPreservationLog.mockResolvedValue([]);
+
+    renderAt("CLM-10042");
+
+    expect(await screen.findByText("damage.jpg")).toBeInTheDocument();
   });
 });

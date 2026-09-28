@@ -21,3 +21,23 @@ LITIGATION_SIGNALS: list[str] = [
     "records_request",
     "none",
 ]
+
+# Visually observable damage locations only — never a cause/fault judgment.
+DAMAGE_REGIONS: list[str] = [
+    "front_bumper",
+    "rear_bumper",
+    "hood",
+    "windshield",
+    "driver_side",
+    "passenger_side",
+    "roof",
+    "trunk",
+    "wheel_tire",
+    "undercarriage",
+    "interior",
+    "other",
+]
+
+IMAGE_QUALITY_VALUES: list[str] = ["clear", "blurry", "obstructed", "too_dark"]
+
+RELEVANCE_VALUES: list[str] = ["relevant", "not_relevant", "uncertain"]

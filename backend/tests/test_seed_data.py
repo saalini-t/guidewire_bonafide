@@ -94,6 +94,46 @@ def test_reset_succeeds_even_when_evidence_is_satisfied_by_a_document(db_session
     assert get_claim(db_session, "CLM-10042") is None
 
 
+def test_reset_succeeds_even_when_a_document_has_an_image_analysis(db_session):
+    """Regression test (Phase 2A): ImageAnalysis.document_id references
+    Document.id, so reset() must delete image_analyses rows before document
+    rows too — the same class of bug as the evidence/document ordering
+    above, now with a second FK into documents.
+    """
+    from app.repositories import create_image_analysis
+    from app.enums import ImageQuality, ImageRelevance
+
+    reset(db_session)
+    seed(db_session)
+    document = create_document(
+        db_session,
+        claim_id="CLM-10042",
+        filename="damage.jpg",
+        storage_path="CLM-10042/damage.jpg",
+        mime_type="image/jpeg",
+    )
+    create_image_analysis(
+        db_session,
+        document_id=document.id,
+        claim_id="CLM-10042",
+        evidence_type=EvidenceType.VEHICLE_PHOTOGRAPHS,
+        vehicle_present=True,
+        damage_observed=True,
+        damage_regions=["front_bumper"],
+        image_quality=ImageQuality.CLEAR,
+        relevance=ImageRelevance.RELEVANT,
+        confidence=0.9,
+        explanation="test",
+        provider="ollama",
+        model="llava",
+    )
+    db_session.flush()
+
+    reset(db_session)  # must not raise ForeignKeyViolation
+
+    assert get_claim(db_session, "CLM-10042") is None
+
+
 def test_clm_20044_has_active_hold(db_session):
     reset(db_session)
     seed(db_session)

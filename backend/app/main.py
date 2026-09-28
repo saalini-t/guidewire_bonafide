@@ -4,7 +4,17 @@ from fastapi.responses import JSONResponse
 
 from app.api import router
 from app.config import settings
-from app.exceptions import ClaimNotFoundError, DocumentNotFoundError, HoldNotFoundError, InvalidHoldTransitionError
+from app.exceptions import (
+    ClaimNotFoundError,
+    DocumentAlreadyProcessingError,
+    DocumentNotFoundError,
+    DocumentProtectedByHoldError,
+    DocumentProtectedBySatisfiedEvidenceError,
+    FileTooLargeError,
+    HoldNotFoundError,
+    InvalidHoldTransitionError,
+    UnsupportedFileTypeError,
+)
 
 app = FastAPI(
     title="Bona Fide Core API",
@@ -51,4 +61,29 @@ def _hold_not_found(request: Request, exc: HoldNotFoundError):
 
 @app.exception_handler(InvalidHoldTransitionError)
 def _invalid_hold_transition(request: Request, exc: InvalidHoldTransitionError):
+    return JSONResponse(status_code=409, content={"detail": str(exc)})
+
+
+@app.exception_handler(UnsupportedFileTypeError)
+def _unsupported_file_type(request: Request, exc: UnsupportedFileTypeError):
+    return JSONResponse(status_code=415, content={"detail": str(exc)})
+
+
+@app.exception_handler(FileTooLargeError)
+def _file_too_large(request: Request, exc: FileTooLargeError):
+    return JSONResponse(status_code=413, content={"detail": str(exc)})
+
+
+@app.exception_handler(DocumentAlreadyProcessingError)
+def _document_already_processing(request: Request, exc: DocumentAlreadyProcessingError):
+    return JSONResponse(status_code=409, content={"detail": str(exc)})
+
+
+@app.exception_handler(DocumentProtectedByHoldError)
+def _document_protected_by_hold(request: Request, exc: DocumentProtectedByHoldError):
+    return JSONResponse(status_code=409, content={"detail": str(exc)})
+
+
+@app.exception_handler(DocumentProtectedBySatisfiedEvidenceError)
+def _document_protected_by_evidence(request: Request, exc: DocumentProtectedBySatisfiedEvidenceError):
     return JSONResponse(status_code=409, content={"detail": str(exc)})

@@ -1,4 +1,5 @@
 fastapi==0.115.6
+python-multipart==0.0.20
 uvicorn[standard]==0.34.0
 sqlalchemy==2.0.36
 alembic==1.14.0
@@ -7,5 +8,18 @@ pydantic==2.10.4
 pydantic-settings==2.7.0
 python-dotenv==1.0.1
 httpx==0.28.1
+pymupdf==1.25.1
 pytest==8.3.4
 pytest-cov==6.0.0
+
+# Optional, NOT required to run the app or tests: OCR fallback for scanned
+# PDFs with no embedded text layer (app.document_extraction.ocr_pdf_text).
+# `pip install pytesseract pillow` is only half of it — pytesseract is a
+# wrapper around the separate Tesseract OCR binary, which is NOT installed
+# by pip. On Windows: install from
+# https://github.com/UB-Mannheim/tesseract/wiki and either add its install
+# dir to PATH or set `pytesseract.pytesseract.tesseract_cmd` to its exe
+# path. If this package or the binary is missing, OCR is silently skipped
+# and the document is marked FAILED for manual review — nothing breaks.
+# pytesseract==0.3.13
+# pillow==11.1.0

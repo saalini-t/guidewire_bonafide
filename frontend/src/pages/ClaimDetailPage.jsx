@@ -3,7 +3,7 @@ import { Link, useParams } from "react-router-dom";
 import { api, ApiError } from "../api/client.js";
 import RiskBanner from "../components/RiskBanner.jsx";
 import EvidenceChecklist from "../components/EvidenceChecklist.jsx";
-import DocumentUpload from "../components/DocumentUpload.jsx";
+import DocumentsPanel from "../components/DocumentsPanel.jsx";
 import HoldsPanel from "../components/HoldsPanel.jsx";
 import OverrideForm from "../components/OverrideForm.jsx";
 import Timeline from "../components/Timeline.jsx";
@@ -14,23 +14,26 @@ export default function ClaimDetailPage() {
   const [evidence, setEvidence] = useState([]);
   const [analysis, setAnalysis] = useState(null);
   const [holds, setHolds] = useState([]);
+  const [documents, setDocuments] = useState([]);
   const [logs, setLogs] = useState([]);
   const [error, setError] = useState(null);
   const [notFound, setNotFound] = useState(false);
 
   const refresh = useCallback(async () => {
     try {
-      const [claimData, evidenceData, analysisData, holdsData, logsData] = await Promise.all([
+      const [claimData, evidenceData, analysisData, holdsData, documentsData, logsData] = await Promise.all([
         api.getClaim(claimId),
         api.getEvidence(claimId),
         api.getAnalysis(claimId),
         api.getHolds(claimId),
+        api.getDocuments(claimId),
         api.getPreservationLog(claimId),
       ]);
       setClaim(claimData);
       setEvidence(evidenceData);
       setAnalysis(analysisData);
       setHolds(holdsData);
+      setDocuments(documentsData);
       setLogs(logsData);
       setError(null);
       setNotFound(false);
@@ -101,7 +104,7 @@ export default function ClaimDetailPage() {
 
       <RiskBanner analysis={analysis} />
       <EvidenceChecklist evidence={evidence} analysis={analysis} />
-      <DocumentUpload claimId={claimId} onMutated={refresh} />
+      <DocumentsPanel claimId={claimId} documents={documents} onMutated={refresh} />
       <HoldsPanel claimId={claimId} holds={holds} onMutated={refresh} />
       <OverrideForm claimId={claimId} upcomingBusinessEvent={claim.upcoming_business_event} onMutated={refresh} />
       <Timeline entries={logs} />

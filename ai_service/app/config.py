@@ -22,5 +22,18 @@ class Settings(BaseSettings):
     # would have succeeded gets treated as "AI unavailable" instead.
     ollama_timeout_seconds: float = 1.0
 
+    # Image analysis (Phase 2A). "none" (the default) means every
+    # /analyze-image request returns 503 — there is no deterministic
+    # fallback for pixels the way there is for text, so "no provider
+    # configured" must be an honest failure, not a fabricated guess.
+    vision_provider: str = "none"
+    # A vision-capable model name, e.g. "llava" or "qwen2.5vl" — deliberately
+    # separate from ollama_model, which is a text-only model unsuitable for
+    # image input.
+    vision_model: str = "llava"
+    # Vision inference is slower than text; independent of
+    # ollama_timeout_seconds so tuning one doesn't silently affect the other.
+    vision_timeout_seconds: float = 15.0
+
 
 settings = Settings()

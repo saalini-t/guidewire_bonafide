@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { api, ApiError } from "../api/client.js";
+import NewClaimForm from "../components/NewClaimForm.jsx";
 import StatusBadge from "../components/StatusBadge.jsx";
 
 const RISK_TONE = { HIGH: "danger", MEDIUM: "warning", LOW: "success" };
@@ -53,9 +54,13 @@ export default function ClaimsPage() {
   if (!claims) return <p className="panel__empty">Loading claims…</p>;
 
   return (
-    <section className="panel">
-      <h1 className="page-title">Claims</h1>
-      <table className="table">
+    <>
+      <div style={{ marginBottom: "16px" }}>
+        <NewClaimForm onCreated={load} />
+      </div>
+      <section className="panel">
+        <h1 className="page-title">Claims</h1>
+        <table className="table">
         <thead>
           <tr>
             <th>Claim ID</th>
@@ -88,7 +93,8 @@ export default function ClaimsPage() {
             </tr>
           ))}
         </tbody>
-      </table>
-    </section>
+        </table>
+      </section>
+    </>
   );
 }

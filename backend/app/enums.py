@@ -40,8 +40,10 @@ class RiskLevel(str, Enum):
 
 class ClassificationStatus(str, Enum):
     PENDING = "PENDING"          # uploaded, not yet classified
+    PROCESSING = "PROCESSING"    # classification request in flight (duplicate-request guard)
     CLASSIFIED = "CLASSIFIED"    # AI classified at/above confidence threshold
     MANUAL_REVIEW = "MANUAL_REVIEW"  # low confidence, AI failure, or invalid AI response
+    FAILED = "FAILED"            # extraction/classification raised unexpectedly, or no extractable text
 
 
 class LitigationSignal(str, Enum):
@@ -62,14 +64,60 @@ class PreservationEventType(str, Enum):
     ANALYSIS_RUN = "ANALYSIS_RUN"
     DOCUMENT_UPLOADED = "DOCUMENT_UPLOADED"
     DOCUMENT_CLASSIFIED = "DOCUMENT_CLASSIFIED"
+    IMAGE_ANALYZED = "IMAGE_ANALYZED"
     EVIDENCE_SATISFIED = "EVIDENCE_SATISFIED"
     LITIGATION_SIGNAL_DETECTED = "LITIGATION_SIGNAL_DETECTED"
     HOLD_PROPOSED = "HOLD_PROPOSED"
     HOLD_CONFIRMED = "HOLD_CONFIRMED"
     HOLD_RELEASED = "HOLD_RELEASED"
     OVERRIDE_APPLIED = "OVERRIDE_APPLIED"
+    DOCUMENT_DELETED = "DOCUMENT_DELETED"
 
 
 class AIProvider(str, Enum):
     DETERMINISTIC = "deterministic"
     OLLAMA = "ollama"
+
+
+class ImageAnalysisStatus(str, Enum):
+    """Distinct from ClassificationStatus (text classification) — a
+    document's classification_status and image_analysis_status are
+    independent axes; see docs/PRESERVATION_LOGIC.md.
+    """
+
+    NOT_APPLICABLE = "NOT_APPLICABLE"  # non-image document (pdf/txt/pasted text)
+    PENDING = "PENDING"  # image uploaded, not yet analyzed
+    PROCESSING = "PROCESSING"  # vision request in flight (duplicate-request guard)
+    ANALYZED = "ANALYZED"  # vision provider succeeded at/above confidence threshold
+    MANUAL_REVIEW = "MANUAL_REVIEW"  # low confidence, malformed response, or provider unavailable
+    FAILED = "FAILED"  # vision call raised unexpectedly
+
+
+class ImageQuality(str, Enum):
+    CLEAR = "clear"
+    BLURRY = "blurry"
+    OBSTRUCTED = "obstructed"
+    TOO_DARK = "too_dark"
+
+
+class ImageRelevance(str, Enum):
+    RELEVANT = "relevant"
+    NOT_RELEVANT = "not_relevant"
+    UNCERTAIN = "uncertain"
+
+
+class DamageRegion(str, Enum):
+    """Visually observable location only — never a cause/fault judgment."""
+
+    FRONT_BUMPER = "front_bumper"
+    REAR_BUMPER = "rear_bumper"
+    HOOD = "hood"
+    WINDSHIELD = "windshield"
+    DRIVER_SIDE = "driver_side"
+    PASSENGER_SIDE = "passenger_side"
+    ROOF = "roof"
+    TRUNK = "trunk"
+    WHEEL_TIRE = "wheel_tire"
+    UNDERCARRIAGE = "undercarriage"
+    INTERIOR = "interior"
+    OTHER = "other"

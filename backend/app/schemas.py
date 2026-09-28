@@ -9,14 +9,24 @@ from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 from app.enums import (
     ClassificationStatus,
+    DamageRegion,
     DocumentClass,
     EvidenceType,
     ExpiryTrigger,
     HoldStatus,
+    ImageAnalysisStatus,
+    ImageQuality,
+    ImageRelevance,
     LitigationSignal,
     PreservationEventType,
     RiskLevel,
 )
+from app.evidence_taxonomy import EVIDENCE_TAXONOMY_BY_CLAIM_TYPE
+
+# Initial repair-status values a newly created claim may start in.
+# AUTHORIZED/CLOSED are reached later via the override workflow, not chosen
+# at creation time.
+INITIAL_REPAIR_STATUSES = {"PENDING", "COMPLETE", "NOT_APPLICABLE"}
 
 # Minimum length for a justification to count as "meaningful" rather than
 # just non-empty (e.g. "ok" or "." pass a bare non-empty check but shouldn't
@@ -41,6 +51,30 @@ class ClaimResponse(BaseModel):
     updated_at: dt.datetime
 
 
+class ClaimCreateRequest(BaseModel):
+    claimant: str = Field(min_length=1)
+    policy_id: str = Field(min_length=1)
+    claim_type: str = Field(min_length=1)
+    loss_date: dt.date
+    description: str = Field(min_length=1)
+    repair_status: str = "PENDING"
+
+    @field_validator("claim_type")
+    @classmethod
+    def _known_claim_type(cls, value: str) -> str:
+        if value not in EVIDENCE_TAXONOMY_BY_CLAIM_TYPE:
+            supported = ", ".join(sorted(EVIDENCE_TAXONOMY_BY_CLAIM_TYPE))
+            raise ValueError(f"Unsupported claim type {value!r}. Supported: {supported}")
+        return value
+
+    @field_validator("repair_status")
+    @classmethod
+    def _known_repair_status(cls, value: str) -> str:
+        if value not in INITIAL_REPAIR_STATUSES:
+            raise ValueError(f"repair_status must be one of {sorted(INITIAL_REPAIR_STATUSES)}")
+        return value
+
+
 class EvidenceItemResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
@@ -56,6 +90,24 @@ class EvidenceItemResponse(BaseModel):
     risk_level: RiskLevel | None
 
 
+class ImageAnalysisResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    document_id: int
+    evidence_type: EvidenceType
+    vehicle_present: bool
+    damage_observed: bool
+    damage_regions: list[DamageRegion]
+    image_quality: ImageQuality
+    relevance: ImageRelevance
+    confidence: float
+    explanation: str
+    provider: str
+    model: str | None
+    analyzed_at: dt.datetime
+
+
 class DocumentResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
@@ -63,7 +115,7 @@ class DocumentResponse(BaseModel):
     claim_id: str
     filename: str
     storage_path: str
-    text: str
+    text: str | None
     uploaded_at: dt.datetime
     classification: DocumentClass | None
     confidence: float | None
@@ -71,6 +123,12 @@ class DocumentResponse(BaseModel):
     litigation_confidence: float | None
     classification_status: ClassificationStatus
     ai_provider: str | None
+    mime_type: str | None
+    file_size: int | None
+    file_hash: str | None
+    image_analysis_status: ImageAnalysisStatus
+    image_analysis: ImageAnalysisResponse | None = None
+    findings: dict | None = None
 
 
 class PreservationHoldResponse(BaseModel):
@@ -78,6 +136,7 @@ class PreservationHoldResponse(BaseModel):
 
     id: int
     claim_id: str
+    document_id: int | None
     status: HoldStatus
     trigger_reason: str
     trigger_source: str
@@ -174,3 +233,22 @@ class OverrideRequest(BaseModel):
 class OverrideResponse(BaseModel):
     claim_id: str
     log: PreservationLogResponse
+
+
+class DocumentDeleteRequest(BaseModel):
+    """MVP does not implement real authentication; `user`/`role` are
+    identity/role capture recorded verbatim for the audit trail, same as
+    OverrideRequest.
+    """
+
+    user: str = Field(min_length=1)
+    role: str = Field(min_length=1)
+    reason: str = Field(min_length=3)
+
+
+class BulkAnalysisItemResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    document_id: int
+    outcome: str
+    reason: str | None = None

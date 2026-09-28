@@ -18,6 +18,7 @@ vi.mock("../api/client.js", () => {
     api: {
       listClaims: vi.fn(),
       getAnalysis: vi.fn(),
+      createClaim: vi.fn(),
     },
   };
 });
@@ -79,5 +80,41 @@ describe("ClaimsPage", () => {
     await user.click(screen.getByRole("button", { name: /retry/i }));
 
     expect(await screen.findByText("CLM-10042")).toBeInTheDocument();
+  });
+
+  it("shows a newly created claim in the list after using + New Claim", async () => {
+    const user = userEvent.setup();
+    api.listClaims.mockResolvedValueOnce([]);
+
+    render(
+      <MemoryRouter>
+        <ClaimsPage />
+      </MemoryRouter>
+    );
+
+    expect(await screen.findByRole("button", { name: /\+ new claim/i })).toBeInTheDocument();
+
+    api.createClaim.mockResolvedValue({ claim_id: "CLM-54321" });
+    api.listClaims.mockResolvedValueOnce([
+      {
+        claim_id: "CLM-54321",
+        claim_type: "PersonalAuto",
+        status: "OPEN",
+        repair_status: "PENDING",
+        upcoming_business_event: "RepairAuthorization",
+      },
+    ]);
+    api.getAnalysis.mockResolvedValue({ risk_level: "HIGH" });
+
+    await user.click(screen.getByRole("button", { name: /\+ new claim/i }));
+    await user.type(screen.getByLabelText(/claimant name/i), "Alex Rivera");
+    await user.type(screen.getByLabelText(/policy number/i), "POL-999");
+    await user.type(screen.getByLabelText(/loss date/i), "2026-09-01");
+    await user.type(screen.getByLabelText(/description/i), "Rear-end collision.");
+    await user.click(screen.getByRole("button", { name: /^create claim$/i }));
+
+    // The list is reloaded (onCreated) before navigating to the new
+    // claim's detail page — api.listClaims must reflect the new claim.
+    await waitFor(() => expect(api.listClaims).toHaveBeenCalledTimes(2));
   });
 });
